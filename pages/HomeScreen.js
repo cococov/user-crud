@@ -3,16 +3,14 @@ import React from 'react';
 import { View } from 'react-native';
 import Mybutton from './components/Mybutton';
 import Mytext from './components/Mytext';
-import { openDatabase } from 'react-native-sqlite-storage';
 import NetInfo from "@react-native-community/netinfo";
-
-//Connction to access the pre-populated users.db
-var db = openDatabase({ name: 'users.db', createFromLocation: 1 }, () => { console.log('todo bien con la DB local'), () => { console.log('algo anda mal con la DB local') } });
+import { url, port } from '../config.json'
+import { db } from '../App'
 
 const postRemoteDb = (data, path, table, key) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
-      fetch(`http://192.168.1.129:3000/${path}`, {
+      fetch(`${url}:${port}/${path}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -42,10 +40,11 @@ const postRemoteDb = (data, path, table, key) => {
         });
     } else {
       console.log('No connection');
-      unsubscribe = NetInfo.addEventListener(state => {
+      let unsubscribeSync = NetInfo.addEventListener(state => {
         if (state.isConnected) {
-          unsubscribe();
+          unsubscribeSync();
           postRemoteDb(rut, name, mail, hash);
+          unsubscribeSync = null;
         }
       });
     }
@@ -81,10 +80,10 @@ const updateExternalDb = () => {
                       let key = item['id'] ? 'id' : 'rut';
                       switch (table) {
                         case 'users':
-                          path = 'setUser';
+                          path = 'syncUser';
                           break;
                         case 'areas':
-                          path = 'setArea';
+                          path = 'syncArea';
                           break;
                       }
                       console.log('Results: ', item[key]);

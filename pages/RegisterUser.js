@@ -3,16 +3,14 @@ import React from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Alert } from 'react-native';
 import Mytextinput from './components/Mytextinput';
 import Mybutton from './components/Mybutton';
-import { openDatabase } from 'react-native-sqlite-storage';
 import NetInfo from "@react-native-community/netinfo";
-//Connction to access the pre-populated users.db
-var db = openDatabase({ name: 'users.db', createFromLocation: 1 }, () => { console.log('todo bien con la DB local'), () => { console.log('algo anda mal con la DB local') } });
-
+import { url, port } from '../config.json'
+import { db } from '../App'
 
 const postRemoteDb = (rut, name, mail, hash) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
-      fetch('http://192.168.1.129:3000/setUser', {
+      fetch(`${url}:${port}/syncUser`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -34,11 +32,11 @@ const postRemoteDb = (rut, name, mail, hash) => {
                 if (results.rowsAffected > 0) {
                   console.log(responseJson);
                 } else {
-                  console.log('falla al hacer UPDATE');
+                  console.log('Local UPDATE Error');
                   alert('Registration Failed');
                 }
               },
-              (tx, err) => { alert(tx.message); console.log('Error al hacer UPDATE', tx.message) }
+              (tx, err) => { alert(tx.message); console.log('Local UPDATE Error', tx.message) }
             );
           });
         })
@@ -46,11 +44,12 @@ const postRemoteDb = (rut, name, mail, hash) => {
           console.error(error);
         });
     } else {
-      console.log('No hay conexión');
-      unsubscribe = NetInfo.addEventListener(state => {
+      console.log('No connection');
+      let unsubscribeRegister = NetInfo.addEventListener(state => {
         if (state.isConnected) {
-          unsubscribe();
+          unsubscribeRegister();
           postRemoteDb(rut, name, mail, hash);
+          unsubscribeRegister = null;
         }
       });
     }
@@ -85,7 +84,7 @@ export default class RegisterUser extends React.Component {
         (tx, results) => {
           console.log('Results', results.rowsAffected);
           if (results.rowsAffected > 0) {
-            console.log('local lista ahora remota');
+            console.log('local done, remote now...');
             postRemoteDb(rut, name, mail, hash);
 
             Alert.alert(
@@ -101,11 +100,11 @@ export default class RegisterUser extends React.Component {
               { cancelable: false }
             );
           } else {
-            console.log('falla al hacer INSERT')
+            console.log('Local INSERT Error')
             alert('Registration Failed');
           }
         },
-        (tx, err) => { alert(tx.message); console.log('Error al hacer INSERT', tx.message) }
+        (tx, err) => { alert(tx.message); console.log('Local INSERT Error', tx.message) }
       );
     });
   };

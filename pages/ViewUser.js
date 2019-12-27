@@ -2,9 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import Mytextinput from './components/Mytextinput';
 import Mybutton from './components/Mybutton';
-import { openDatabase } from 'react-native-sqlite-storage';
-//Connction to access the pre-populated users.db
-var db = openDatabase({ name: 'users.db', createFromLocation: 1 }, () => { console.log('todo bien con la DB local'), () => { console.log('algo anda mal con la DB local') } });
+import { db } from '../App'
 
 export default class ViewUser extends React.Component {
 
@@ -46,7 +44,7 @@ export default class ViewUser extends React.Component {
     return (
       <View>
         <Mytextinput
-          placeholder="Enter User Rut"
+          placeholder="Enter the User's Rut"
           onChangeText={input_rut => this.setState({ input_rut })}
           style={{ padding: 10 }}
         />

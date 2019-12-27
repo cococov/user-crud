@@ -1,17 +1,15 @@
 import React from 'react';
-import { Button, Text, View, Alert } from 'react-native';
+import { View, Alert } from 'react-native';
 import Mytextinput from './components/Mytextinput';
 import Mybutton from './components/Mybutton';
-import { openDatabase } from 'react-native-sqlite-storage';
 import NetInfo from "@react-native-community/netinfo";
-
-//Connction to access the pre-populated users.db
-var db = openDatabase({ name: 'users.db', createFromLocation: 1 }, () => { console.log('todo bien con la DB local'), () => { console.log('algo anda mal con la DB local') } });
+import { url, port } from '../config.json'
+import { db } from '../App'
 
 const postRemoteDb = (rut) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
-      fetch('http://192.168.1.129:3000/deleteUser', {
+      fetch(`${url}:${port}/deleteUser`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/json',

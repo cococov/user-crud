@@ -1,15 +1,22 @@
-import React from 'react';
-//For react-navigation 3.0+
-//import { createAppContainer, createStackNavigator } from 'react-navigation';
-//For react-navigation 4.0+
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
+import { openDatabase } from 'react-native-sqlite-storage';
 import HomeScreen from './pages/HomeScreen';
 import RegisterUser from './pages/RegisterUser';
 import UpdateUser from './pages/UpdateUser';
 import ViewUser from './pages/ViewUser';
 import ViewAllUser from './pages/ViewAllUser';
 import DeleteUser from './pages/DeleteUser';
+
+//Connction to access the pre-populated users.db
+export var db = openDatabase(
+  { name: 'users.db', createFromLocation: 1 },
+  () => {
+    console.log('Local DB Epen');
+  },
+  () => {
+    console.log('Local DB Error');
+  });
 
 const App = createStackNavigator({
   HomeScreen: {

@@ -1,10 +1,59 @@
 import React from 'react';
-import { View, YellowBox, ScrollView, KeyboardAvoidingView, Alert, } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Alert } from 'react-native';
 import Mytextinput from './components/Mytextinput';
 import Mybutton from './components/Mybutton';
-import { openDatabase } from 'react-native-sqlite-storage';
-//Connction to access the pre-populated users.db
-var db = openDatabase({ name: 'users.db', createFromLocation: 1 }, () => { console.log('todo bien con la DB local'), () => { console.log('algo anda mal con la DB local') } });
+import NetInfo from '@react-native-community/netinfo';
+import { url, port } from '../config.json'
+import { db } from '../App'
+
+const postRemoteDb = (rut, name, mail, hash) => {
+  NetInfo.fetch().then(state => {
+    if (state.isConnected) {
+      fetch(`${url}:${port}/syncUser`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rut: rut,
+          name: name,
+          mail: mail,
+          hash: hash
+        }),
+      }).then((response) => response.json())
+        .then((responseJson) => {
+          db.transaction((tx) => {
+            tx.executeSql(
+              `UPDATE users SET updated = 1 WHERE rut = '${rut}'`,
+              [],
+              (tx, results) => {
+                if (results.rowsAffected > 0) {
+                  console.log(responseJson);
+                } else {
+                  console.log('Local UPDATE Error');
+                  alert('Registration Failed');
+                }
+              },
+              (tx, err) => { alert(tx.message); console.log('Local UPDATE Error', tx.message) }
+            );
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    } else {
+      console.log('No connection');
+      let unsubscribeUpdate = NetInfo.addEventListener(state => {
+        if (state.isConnected) {
+          unsubscribeUpdate();
+          postRemoteDb(rut, name, mail, hash);
+          unsubscribeUpdate = null;
+        }
+      });
+    }
+  });
+}
 
 export default class UpdateUser extends React.Component {
 
@@ -49,34 +98,34 @@ export default class UpdateUser extends React.Component {
 
   updateUser = () => {
     const { input_rut, name, mail } = this.state;
+    const hash = (new Date()).getTime();
 
-    if (name) {
-      if (mail) {
-        db.transaction((tx) => {
-          tx.executeSql(
-            'UPDATE user set name=?, mail=? where rut=?',
-            [name, mail, input_rut],
-            (tx, results) => {
-              console.log('Results', results.rowsAffected);
-              if (results.rowsAffected > 0) {
-                Alert.alert('Success', 'User updated successfully',
-                  [
-                    { text: 'Ok', onPress: () => this.props.navigation.navigate('HomeScreen') },
-                  ],
-                  { cancelable: false }
-                );
-              } else {
-                alert('Updation Failed');
-              }
-            }
-          );
-        });
-      } else {
-        alert('Please fill Contact Number');
-      }
-    } else {
-      alert('Please fill Name');
-    }
+    if (!name)
+      return alert('Please fill Name');
+
+    if (!mail)
+      return alert('Please fill Mail');
+
+    db.transaction((tx) => {
+      tx.executeSql(
+        `UPDATE users set name=?, mail=?, hash=?, updated=0 where rut=?`,
+        [name, mail, hash, input_rut],
+        (tx, results) => {
+          console.log('Results', results.rowsAffected);
+          if (results.rowsAffected > 0) {
+            postRemoteDb(input_rut, name, mail, hash);
+            Alert.alert('Success', 'User updated successfully',
+              [
+                { text: 'Ok', onPress: () => this.props.navigation.navigate('HomeScreen') },
+              ],
+              { cancelable: false }
+            );
+          } else {
+            alert('Updation Failed');
+          }
+        }
+      );
+    });
   };
 
   render() {
