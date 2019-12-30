@@ -28,6 +28,21 @@ app.get('/users', (req, res) => {
   });
 });
 
+/*
+ @todo
+*/
+app.get('/getUser', (req, res) => {
+  if (!db)
+    console.log('DB connection error');
+
+  db.getConnection((err, connection) => {
+    connection.query(`SELECT * FROM users WHERE rut = ${req.}`, (error, results, fields) => {
+      if (error) res.status(500).send(error);
+      res.status(200).send(results)
+    });
+  });
+});
+
 /* POST */
 app.post('/setUser', (req, res) => {
   const query = `INSERT INTO users (rut,name,mail,hash) VALUES ('${req.body.rut}','${req.body.name}','${req.body.mail}',${req.body.hash})`;

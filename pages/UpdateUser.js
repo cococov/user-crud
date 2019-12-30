@@ -6,6 +6,13 @@ import NetInfo from '@react-native-community/netinfo';
 import { url, port } from '../config.json'
 import { db } from '../App'
 
+/**
+ * Send the user's data to the backend for storage it.
+ * @param {string} rut Rut of the user.
+ * @param {string} name Name of the user.
+ * @param {string} mail E-mail of the user.
+ * @param {number} hash Hash (epoch meanwhile) of the change.
+ */
 const postRemoteDb = (rut, name, mail, hash) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
@@ -60,19 +67,65 @@ export default class UpdateUser extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      input_rut: '',
+      rut: '',
       name: '',
       mail: '',
     };
   }
 
+  /**
+   * @todo
+   */
+  tryRemote = () => {
+    const { rut } = this.state;
+    NetInfo.fetch().then(state => {
+      if (state.isConnected) {
+        fetch(`${url}:${port}/getUser`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ rut: rut }),
+        }).then((response) => response.json())
+          .then((responseJson) => {
+            db.transaction((tx) => {
+              console.log('prueba -> ', responseJson);
+              /* tx.executeSql(
+                `UPDATE ${table} SET updated = 1 WHERE ${key} = '${data[key]}'`,
+                [],
+                (tx, results) => {
+                  if (results.rowsAffected > 0) {
+                    console.log('Users table Updated');
+                  } else {
+                    console.log('UPDATE Failed');
+                    alert('Registration Failed');
+                  }
+                },
+                (tx, err) => { alert(tx.message); console.log('UPDATE Failed', tx.message) }
+              ); */
+              this.searchUser();
+            });
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      } else {
+        this.searchUser();
+      }
+    });
+  }
+
+  /**
+   * Search data of the user on the DB, trying to get it from the remote DB first.
+   */
   searchUser = () => {
-    const { input_rut } = this.state;
-    console.log(input_rut);
+    const { rut } = this.state;
+    console.log(rut);
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM users where rut = ?',
-        [input_rut],
+        [rut],
         (tx, results) => {
           let len = results.rows.length;
           console.log('len', len);
@@ -97,7 +150,7 @@ export default class UpdateUser extends React.Component {
   };
 
   updateUser = () => {
-    const { input_rut, name, mail } = this.state;
+    const { rut, name, mail } = this.state;
     const hash = (new Date()).getTime();
 
     if (!name)
@@ -109,11 +162,11 @@ export default class UpdateUser extends React.Component {
     db.transaction((tx) => {
       tx.executeSql(
         `UPDATE users set name=?, mail=?, hash=?, updated=0 where rut=?`,
-        [name, mail, hash, input_rut],
+        [name, mail, hash, rut],
         (tx, results) => {
           console.log('Results', results.rowsAffected);
           if (results.rowsAffected > 0) {
-            postRemoteDb(input_rut, name, mail, hash);
+            postRemoteDb(rut, name, mail, hash);
             Alert.alert('Success', 'User updated successfully',
               [
                 { text: 'Ok', onPress: () => this.props.navigation.navigate('HomeScreen') },
@@ -139,12 +192,12 @@ export default class UpdateUser extends React.Component {
             <Mytextinput
               placeholder="Enter User Rut"
               style={{ padding: 10 }}
-              onChangeText={input_rut => this.setState({ input_rut })}
+              onChangeText={rut => this.setState({ rut })}
               keyboardType="numeric"
             />
             <Mybutton
               title="Search User"
-              customClick={this.searchUser.bind(this)}
+              customClick={this.tryRemote.bind(this)}
             />
             <Mytextinput
               placeholder="Enter Name"

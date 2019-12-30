@@ -7,6 +7,13 @@ import NetInfo from "@react-native-community/netinfo";
 import { url, port } from '../config.json'
 import { db } from '../App'
 
+/**
+ * Send the not-sent data to the backend for storage it.
+ * @param {Object} data The data that will be sent.
+ * @param {string} path The path of the web API on the backend.
+ * @param {string} table The table of the DB where the data will be sent.
+ * @param {string} key The key of the data (id, rut, etc...).
+ */
 const postRemoteDb = (data, path, table, key) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
@@ -49,17 +56,20 @@ const postRemoteDb = (data, path, table, key) => {
       });
     }
   });
-}
+};
 
+/**
+ * Search on the local DB for not-sent data and send it to the backend for storage it.
+ */
 const updateExternalDb = () => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
       db.transaction((tx) => {
         tx.executeSql(
-          `SELECT name 
-           FROM sqlite_master 
-           WHERE type = 'table' 
-             AND name NOT LIKE 'sqlite_%' 
+          `SELECT name
+           FROM sqlite_master
+           WHERE type = 'table'
+             AND name NOT LIKE 'sqlite_%'
              AND name != 'android_metadata'`,
           [],
           (tx, tables) => {
@@ -69,8 +79,8 @@ const updateExternalDb = () => {
               let table = tables.rows.item(i).name;
               db.transaction((tx) => {
                 tx.executeSql(
-                  `SELECT * 
-                   FROM ${table} 
+                  `SELECT *
+                   FROM ${table}
                    WHERE updated = 0`,
                   [],
                   (tx, results) => {
@@ -109,7 +119,7 @@ const updateExternalDb = () => {
       });
     }
   });
-}
+};
 
 export default class HomeScreen extends React.Component {
 
@@ -117,7 +127,7 @@ export default class HomeScreen extends React.Component {
     super(props);
     updateExternalDb();
   }
-
+  
   render() {
     const { navigation } = this.props;
     return (
