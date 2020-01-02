@@ -32,7 +32,7 @@ const postRemoteDb = (data, path, table, key) => {
               [],
               (tx, results) => {
                 if (results.rowsAffected > 0) {
-                  console.log('Users table Updated');
+                  console.log(`${table} table Updated`);
                 } else {
                   console.log('UPDATE Failed');
                   alert('Registration Failed');

@@ -17,28 +17,42 @@ app.use(bodyParser.json());
 
 /* GET */
 app.get('/users', (req, res) => {
+  const query = `SELECT * FROM users WHERE deleted=0`;
+  const log = { status: '', method: 'GET', msg: ''};
+
   if (!db)
     console.log('DB connection error');
 
   db.getConnection((err, connection) => {
-    connection.query('SELECT * FROM users', (error, results, fields) => {
-      if (error) res.status(500).send(error);
-      res.status(200).send(results)
+    console.log(query);
+    connection.query(query, (error, results, fields) => {
+      if (error) {
+        log.status = 'error'; log.msg = error.code;
+        console.log(log);res.status(500).send(log);
+      }
+      log.status = 'ok'; log.msg = 'Users';
+      console.log(log);res.status(200).send(results);
     });
   });
 });
 
-/*
- @todo
-*/
 app.get('/getUser', (req, res) => {
+  const query = `SELECT name, mail, hash FROM users WHERE rut = '${req.query.rut}' AND deleted=0`;
+  const log = { status: '', method: 'GET', msg: '', rut: req.query.rut};
+
   if (!db)
     console.log('DB connection error');
 
   db.getConnection((err, connection) => {
-    connection.query(`SELECT * FROM users WHERE rut = ${req.}`, (error, results, fields) => {
-      if (error) res.status(500).send(error);
-      res.status(200).send(results)
+    console.log(query);
+    connection.query(query, (error, results, fields) => {
+      if (error) {
+        log.status = 'error'; log.msg = error.code;
+        console.log(log);res.status(500).send(log);
+      }
+      log.status = 'ok'; log.msg = 'User found';
+      if (results.length < 1) log.msg = 'User not found';
+      console.log(log);res.status(200).send(results);
     });
   });
 });
@@ -78,10 +92,10 @@ app.post('/syncUser', (req, res) => {
 
       let query2 = '';
       if (rows < 1) {
-        query2 = `INSERT INTO users (rut,name,mail,hash) VALUES ('${req.body.rut}','${req.body.name}','${req.body.mail}',${req.body.hash})`;
+        query2 = `INSERT INTO users (rut,name,mail,hash,deleted) VALUES ('${req.body.rut}','${req.body.name}','${req.body.mail}',${req.body.hash},${req.body.deleted})`;
         log = { status: '', method: 'POST', msg: 'User successfully inserted', rut: req.body.rut, hash: req.body.hash };
       } else {
-        query2 = `UPDATE users SET name='${req.body.name}', mail='${req.body.mail}', hash=${req.body.hash} where rut='${req.body.rut}'`;
+        query2 = `UPDATE users SET name='${req.body.name}', mail='${req.body.mail}', hash=${req.body.hash}, deleted=${req.body.deleted} where rut='${req.body.rut}'`;
         log = { status: '', method: 'POST', msg: 'User successfully updated', rut: req.body.rut, hash: req.body.hash };
       }
 
@@ -166,7 +180,7 @@ app.post('/syncArea', (req, res) => {
 
 /* DELETE */
 app.delete('/deleteUser', (req, res) => {
-  const query = `DELETE FROM users WHERE rut = '${req.body.rut}'`;
+  const query = `UPDATE users SET deleted=1 where rut='${req.body.rut}'`;
   const log = { status: '', method: 'DELETE', msg: '', rut: req.body.rut };
 
   if (!db)

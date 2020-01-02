@@ -28,15 +28,15 @@ const postRemoteDb = (rut, name, mail, hash) => {
           mail: mail,
           hash: hash
         }),
-      }).then((response) => response.json())
-        .then((responseJson) => {
+      }).then((response) => {
+        if (response.status === 200) {
           db.transaction((tx) => {
             tx.executeSql(
               `UPDATE users SET updated = 1 WHERE rut = '${rut}'`,
               [],
               (tx, results) => {
                 if (results.rowsAffected > 0) {
-                  console.log(responseJson);
+                  console.log(response.json());
                 } else {
                   console.log('Local UPDATE Error');
                   alert('Registration Failed');
@@ -45,7 +45,8 @@ const postRemoteDb = (rut, name, mail, hash) => {
               (tx, err) => { alert(tx.message); console.log('Local UPDATE Error', tx.message) }
             );
           });
-        })
+        }
+      })
         .catch((error) => {
           console.error(error);
         });
@@ -74,41 +75,51 @@ export default class UpdateUser extends React.Component {
   }
 
   /**
-   * @todo
+   * Try to get remote data. If there is not connection, use the local DB instead
    */
   tryRemote = () => {
     const { rut } = this.state;
     NetInfo.fetch().then(state => {
       if (state.isConnected) {
-        fetch(`${url}:${port}/getUser`, {
-          method: 'POST',
+        fetch(`${url}:${port}/getUser?rut=${rut}`, {
+          method: 'GET',
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ rut: rut }),
         }).then((response) => response.json())
           .then((responseJson) => {
-            db.transaction((tx) => {
-              console.log('prueba -> ', responseJson);
-              /* tx.executeSql(
-                `UPDATE ${table} SET updated = 1 WHERE ${key} = '${data[key]}'`,
-                [],
-                (tx, results) => {
-                  if (results.rowsAffected > 0) {
-                    console.log('Users table Updated');
-                  } else {
-                    console.log('UPDATE Failed');
-                    alert('Registration Failed');
-                  }
-                },
-                (tx, err) => { alert(tx.message); console.log('UPDATE Failed', tx.message) }
-              ); */
-              this.searchUser();
-            });
+            if (responseJson.length > 0) {
+              db.transaction((tx) => {
+                let user = responseJson[0];
+                tx.executeSql(
+                  `UPDATE users SET name=?, mail=?, hash=?, updated=1, deleted=0 WHERE rut = '${rut}'`,
+                  [user.name, user.mail, user.hash],
+                  (tx, results) => {
+                    if (results.rowsAffected <= 0) {
+                      tx.executeSql(
+                        `INSERT INTO users (rut, name, mail, updated, hash, deleted) VALUES (?,?,?,?,?,?)`,
+                        [rut, user.name, user.mail, 1, user.hash, 0],
+                        (tx, results) => {
+                          if (results.rowsAffected <= 0) {
+                            console.log('Local INSERT error');
+                          }
+                        },
+                        (tx, err) => { alert(tx.message); console.log('local INSERT error', tx.message) }
+                      );
+                    }
+                    this.searchUser();
+                  },
+                  (tx, err) => { alert(tx.message); console.log('UPDATE Failed', tx.message) }
+                );
+              });
+            } else {
+              alert('user not found');
+            }
           })
           .catch((error) => {
             console.error(error);
+            this.searchUser();
           });
       } else {
         this.searchUser();
@@ -117,24 +128,20 @@ export default class UpdateUser extends React.Component {
   }
 
   /**
-   * Search data of the user on the DB, trying to get it from the remote DB first.
+   * Search a user in the local DB
    */
   searchUser = () => {
     const { rut } = this.state;
     console.log(rut);
     db.transaction(tx => {
       tx.executeSql(
-        'SELECT * FROM users where rut = ?',
+        'SELECT * FROM users WHERE rut=? AND deleted=0',
         [rut],
         (tx, results) => {
           let len = results.rows.length;
-          console.log('len', len);
           if (len > 0) {
-            console.log(results.rows.item(0).mail);
             this.setState({
               name: results.rows.item(0).name,
-            });
-            this.setState({
               mail: results.rows.item(0).mail,
             });
           } else {
@@ -149,6 +156,9 @@ export default class UpdateUser extends React.Component {
     });
   };
 
+  /**
+   * Update the local User and after that, try to sync with the remote DB
+   */
   updateUser = () => {
     const { rut, name, mail } = this.state;
     const hash = (new Date()).getTime();

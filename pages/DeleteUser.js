@@ -18,10 +18,17 @@ const postRemoteDb = (rut) => {
         body: JSON.stringify({
           rut: rut
         }),
-      }).then((response) => response.json())
-        .then((responseJson) => {
-          console.log(responseJson);
-        })
+      }).then((response) => {
+        db.transaction(tx => {
+          tx.executeSql(            
+            'DELETE FROM users WHERE rut=?',
+            [rut],(tx, results) => {}
+          );
+        });
+        return response.json();
+      }).then((responseJson) => {
+        console.log(responseJson);
+      })
         .catch((error) => {
           console.error(error);
         });
@@ -51,7 +58,7 @@ export default class UpdateUser extends React.Component {
 
     db.transaction(tx => {
       tx.executeSql(
-        'DELETE FROM  users where rut=?',
+        'UPDATE users SET deleted=1 where rut=?',
         [input_rut],
         (tx, results) => {
           console.log('Results', results.rowsAffected);
