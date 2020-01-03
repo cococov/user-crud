@@ -24,27 +24,43 @@ const postRemoteDb = (data, path, table, key) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-      }).then((response) => response.json())
-        .then((responseJson) => {
-          db.transaction((tx) => {
-            tx.executeSql(
-              `UPDATE ${table} SET updated = 1 WHERE ${key} = '${data[key]}'`,
-              [],
-              (tx, results) => {
-                if (results.rowsAffected > 0) {
-                  console.log(`${table} table Updated`);
-                } else {
-                  console.log('UPDATE Failed');
-                  alert('Registration Failed');
+      }).then((response) => {
+        if (response.status === 200) {
+          if (data.deleted && data.deleted === 1) {
+            db.transaction(tx => {
+              tx.executeSql(
+                'DELETE FROM ? WHERE ?=?',
+                [table, key, data[key]], (tx, results) => {
+                  if (results.rowsAffected > 0) {
+                    console.log(`${table} table Updated`);
+                  } else {
+                    console.log('DELETE Failed');
+                  }
                 }
-              },
-              (tx, err) => { alert(tx.message); console.log('UPDATE Failed', tx.message) }
-            );
-          });
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+              );
+            });
+          } else {
+            db.transaction((tx) => {
+              tx.executeSql(
+                `UPDATE ? SET updated = 1 WHERE ?=?`,
+                [table, key, data[key]],
+                (tx, results) => {
+                  if (results.rowsAffected > 0) {
+                    console.log(`${table} table Updated`);
+                  } else {
+                    console.log('UPDATE Failed');
+                  }
+                },
+                (tx, err) => { alert(tx.message); console.log('UPDATE Failed', tx.message) }
+              );
+            });
+          }
+        }
+        return response.json();
+      }).then((responseJson) => {
+      }).catch((error) => {
+        console.error(error);
+      });
     } else {
       console.log('No connection');
       let unsubscribeSync = NetInfo.addEventListener(state => {
@@ -127,7 +143,7 @@ export default class HomeScreen extends React.Component {
     super(props);
     updateExternalDb();
   }
-  
+
   render() {
     const { navigation } = this.props;
     return (

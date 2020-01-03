@@ -19,19 +19,20 @@ const postRemoteDb = (rut) => {
           rut: rut
         }),
       }).then((response) => {
-        db.transaction(tx => {
-          tx.executeSql(            
-            'DELETE FROM users WHERE rut=?',
-            [rut],(tx, results) => {}
-          );
-        });
+        if (response.status === 200) {
+          db.transaction(tx => {
+            tx.executeSql(
+              'DELETE FROM users WHERE rut=?',
+              [rut], (tx, results) => { }
+            );
+          });
+        }
         return response.json();
       }).then((responseJson) => {
         console.log(responseJson);
-      })
-        .catch((error) => {
-          console.error(error);
-        });
+      }).catch((error) => {
+        console.error(error);
+      });
     } else {
       console.log('No connection');
       unsubscribe = NetInfo.addEventListener(state => {
@@ -58,7 +59,7 @@ export default class UpdateUser extends React.Component {
 
     db.transaction(tx => {
       tx.executeSql(
-        'UPDATE users SET deleted=1 where rut=?',
+        'UPDATE users SET deleted=1, updated=0 where rut=?',
         [input_rut],
         (tx, results) => {
           console.log('Results', results.rowsAffected);

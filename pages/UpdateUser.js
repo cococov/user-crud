@@ -12,8 +12,9 @@ import { db } from '../App'
  * @param {string} name Name of the user.
  * @param {string} mail E-mail of the user.
  * @param {number} hash Hash (epoch meanwhile) of the change.
+ * @param {number} deleted 1 -> deleted :: 0 -> no deleted
  */
-const postRemoteDb = (rut, name, mail, hash) => {
+const postRemoteDb = (rut, name, mail, hash, deleted) => {
   NetInfo.fetch().then(state => {
     if (state.isConnected) {
       fetch(`${url}:${port}/syncUser`, {
@@ -26,7 +27,8 @@ const postRemoteDb = (rut, name, mail, hash) => {
           rut: rut,
           name: name,
           mail: mail,
-          hash: hash
+          hash: hash,
+          deleted: deleted
         }),
       }).then((response) => {
         if (response.status === 200) {
@@ -36,7 +38,7 @@ const postRemoteDb = (rut, name, mail, hash) => {
               [],
               (tx, results) => {
                 if (results.rowsAffected > 0) {
-                  console.log(response.json());
+                  console.log('User updated');
                 } else {
                   console.log('Local UPDATE Error');
                   alert('Registration Failed');
@@ -46,8 +48,10 @@ const postRemoteDb = (rut, name, mail, hash) => {
             );
           });
         }
-      })
-        .catch((error) => {
+        return response.json();
+      }).then((responseJson) => {
+        console.log(responseJson);
+      }).catch((error) => {
           console.error(error);
         });
     } else {
@@ -171,12 +175,12 @@ export default class UpdateUser extends React.Component {
 
     db.transaction((tx) => {
       tx.executeSql(
-        `UPDATE users set name=?, mail=?, hash=?, updated=0 where rut=?`,
+        `UPDATE users set name=?, mail=?, hash=?, updated=0, deleted=0 where rut=?`,
         [name, mail, hash, rut],
         (tx, results) => {
           console.log('Results', results.rowsAffected);
           if (results.rowsAffected > 0) {
-            postRemoteDb(rut, name, mail, hash);
+            postRemoteDb(rut, name, mail, hash, 0);
             Alert.alert('Success', 'User updated successfully',
               [
                 { text: 'Ok', onPress: () => this.props.navigation.navigate('HomeScreen') },

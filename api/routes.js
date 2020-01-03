@@ -29,9 +29,11 @@ app.get('/users', (req, res) => {
       if (error) {
         log.status = 'error'; log.msg = error.code;
         console.log(log);res.status(500).send(log);
+        return 0;
       }
       log.status = 'ok'; log.msg = 'Users';
       console.log(log);res.status(200).send(results);
+      return 0;
     });
   });
 });
@@ -49,10 +51,12 @@ app.get('/getUser', (req, res) => {
       if (error) {
         log.status = 'error'; log.msg = error.code;
         console.log(log);res.status(500).send(log);
+        return 0;
       }
       log.status = 'ok'; log.msg = 'User found';
       if (results.length < 1) log.msg = 'User not found';
       console.log(log);res.status(200).send(results);
+      return 0;
     });
   });
 });
@@ -75,6 +79,7 @@ app.post('/setUser', (req, res) => {
       }
       log.status = 'ok'; log.msg = 'User successfully inserted';
       console.log(log); res.status(200).send(log);
+      return 0;
     });
   });
 });
@@ -109,6 +114,7 @@ app.post('/syncUser', (req, res) => {
           }
           log.status = 'ok';
           console.log(log); res.status(200).send(log);
+          return 0;
         });
       });
     });
@@ -132,6 +138,7 @@ app.post('/updateUser', (req, res) => {
       }
       log.status = 'ok'; log.msg = 'User successfully updated';
       console.log(log); res.status(200).send(log);
+      return 0;
     });
   });
 });
@@ -153,6 +160,7 @@ app.post('/setArea', (req, res) => {
       }
       log.status = 'ok'; log.msg = 'User successfully inserted';
       console.log(log); res.status(200).send(log);
+      return 0;
     });
   });
 });
@@ -174,6 +182,7 @@ app.post('/syncArea', (req, res) => {
       }
       log.status = 'ok'; log.msg = 'User successfully inserted';
       console.log(log); res.status(200).send(log);
+      return 0;
     });
   });
 });
@@ -196,6 +205,7 @@ app.delete('/deleteUser', (req, res) => {
       }
       log.status = 'ok'; log.msg = 'User successfully deleted';
       console.log(log); res.status(200).send(log);
+      return 0;
     });
   });
 });

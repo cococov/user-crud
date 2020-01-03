@@ -22,15 +22,15 @@ const postRemoteDb = (rut, name, mail, hash) => {
           mail: mail,
           hash: hash
         }),
-      }).then((response) => response.json())
-        .then((responseJson) => {
+      }).then((response) => {
+        if (response.status === 200) {
           db.transaction((tx) => {
             tx.executeSql(
               `UPDATE users SET updated = 1 WHERE rut = '${rut}'`,
               [],
               (tx, results) => {
                 if (results.rowsAffected > 0) {
-                  console.log(responseJson);
+                  console.log('User updated')
                 } else {
                   console.log('Local UPDATE Error');
                   alert('Registration Failed');
@@ -39,10 +39,13 @@ const postRemoteDb = (rut, name, mail, hash) => {
               (tx, err) => { alert(tx.message); console.log('Local UPDATE Error', tx.message) }
             );
           });
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+        }
+        return response.json();
+      }).then((responseJson) => {
+        console.log(responseJson);
+      }).catch((error) => {
+        console.error(error);
+      });
     } else {
       console.log('No connection');
       let unsubscribeRegister = NetInfo.addEventListener(state => {
