@@ -82,8 +82,8 @@ export default class RegisterUser extends React.Component {
 
     db.transaction((tx) => {
       tx.executeSql(
-        'INSERT INTO users (rut, name, mail, updated, hash) VALUES (?,?,?,?,?)',
-        [rut, name, mail, updated, hash],
+        'INSERT INTO users (rut, name, mail, updated, hash, deleted) VALUES (?,?,?,?,?,?)',
+        [rut, name, mail, updated, hash, 0],
         (tx, results) => {
           console.log('Results', results.rowsAffected);
           if (results.rowsAffected > 0) {
